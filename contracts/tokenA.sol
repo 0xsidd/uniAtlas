@@ -5,6 +5,6 @@ import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
 contract TokenA is ERC20 {
     constructor() ERC20("MyToken", "MTK"){
-        _mint(msg.sender, 10000000 * 10 ** decimals());
+        _mint(msg.sender, 100000000000 * 10 ** decimals());
     }
 }
