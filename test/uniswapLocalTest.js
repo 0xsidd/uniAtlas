@@ -201,7 +201,7 @@ describe("Token contract", function () {
             await expect(await provider.getBalance(uniswapV2Router.address)).to.equal(0);
           });
         });
-        describe("swapETHForExactTokens",async()=>{
+        describe.only("swapETHForExactTokens",async()=>{
           it("swapETHForExactTokens function", async function () {
             await _addLiquidityETH();
             console.log("aaaa",await provider.getBalance(signer[11].address));

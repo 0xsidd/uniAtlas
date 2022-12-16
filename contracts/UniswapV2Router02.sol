@@ -560,13 +560,12 @@ contract UniswapV2Router02 {
             )
         );
         _swap(amounts, path, to);
-        (bool suc,) = payable(feeCollector).call{value: feesAmount}("");
-        require(suc);
+        TransferHelper.safeTransferETH(payable(feeCollector), feesAmount);
+        // (bool suc,) = payable(feeCollector).call{value: feesAmount}("");
+        // require(suc);
         // refund dust eth, if any
         if (msg.value > amounts[0])
-            // TransferHelper.safeTransferETH(msg.sender, msg.value - amounts[0]);
-            (suc,) = payable(msg.sender).call{value: address(this).balance}("");
-            require(suc);
+            TransferHelper.safeTransferETH(payable(msg.sender), address(this).balance);
     }
 
     // **** SWAP (supporting fee-on-transfer tokens) ****
