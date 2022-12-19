@@ -486,16 +486,17 @@ contract UniswapV2Router02 {
             UniswapV2Library.pairFor(factory, path[0], path[1]),
             amounts[0]
         );
-        TransferHelper.safeTransferETH(feeCollector, amt[1]);
+
         _swap(amounts, path, address(this));
-        // TransferHelper.safeTransferFrom(
-        //     path[0],
-        //     msg.sender,
-        //     feeCollector,
-        //     feesAmount
-        // );
+        TransferHelper.safeTransferFrom(
+            path[0],
+            msg.sender,
+            feeCollector,
+            feesAmount
+        );
         IWETH(WETH).withdraw(amounts[amounts.length - 1]);
-        uint256[] memory amt = UniswapV2Library.getAmountsOut(factory, feesAmount, path);
+        // int256[] memory amt = UniswapV2Library.getAmountsOut(factory, feesAmount, path);
+        // TransferHelper.safeTransferETH(feeCollector, amt[1]);
         TransferHelper.safeTransferETH(to, address(this).balance);
     }
 
@@ -521,13 +522,13 @@ contract UniswapV2Router02 {
             UniswapV2Library.pairFor(factory, path[0], path[1]),
             amounts[0]
         );
-        _swap(amounts, path, address(this));
         TransferHelper.safeTransferFrom(
             path[0],
             msg.sender,
             feeCollector,
             feesAmount
         );
+        _swap(amounts, path, address(this));
         IWETH(WETH).withdraw(amounts[amounts.length - 1]);
         TransferHelper.safeTransferETH(to, (amounts[amounts.length - 1])); ///////////////////////////////TBC/////////////////////////////////////////
     }
