@@ -520,7 +520,9 @@ contract UniswapV2Router02 {
     ) external virtual ensure(deadline) returns (uint256[] memory amounts) {
         require(path[path.length - 1] == WETH, "UniswapV2Router: INVALID_PATH");
         uint256 feesAmount = (amountIn*fee)/10000;
-        amountIn = amountIn - (amountIn*fee)/10000;
+
+        amountIn = amountIn - feesAmount;
+
         amounts = UniswapV2Library.getAmountsOut(factory, amountIn, path);
         require(
             amounts[amounts.length - 1] >= amountOutMin,
@@ -533,7 +535,9 @@ contract UniswapV2Router02 {
             UniswapV2Library.pairFor(factory, path[0], path[1]),
             amounts[0]
         );
+        
         _swap(amounts, path, address(this));
+
         TransferHelper.safeTransferFrom(
             path[0],
             msg.sender,
