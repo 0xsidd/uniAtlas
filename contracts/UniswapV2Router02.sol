@@ -423,13 +423,14 @@ contract UniswapV2Router02 {
             UniswapV2Library.pairFor(factory, path[0], path[1]),
             amounts[0]
         );
-        _swap(amounts, path, to);
         TransferHelper.safeTransferFrom(
             path[0],
             msg.sender,
             feeCollector,
             (amounts[0]*fee)/100
         );
+        _swap(amounts, path, to);
+        
     }
 
     function swapExactETHForTokens( ///////////////////////////////////////////////////////////////CHECKED////////////////////////////////////////
@@ -464,7 +465,7 @@ contract UniswapV2Router02 {
         TransferHelper.safeTransferETH(feeCollector,(msg.value*fee)/100);
     }
 
-    function swapTokensForExactETH( //////////////////////////////////////////CHECKED/////////////////////////////////////
+    function swapTokensForExactETH(//////////////////////////////////////////CHECKED/////////////////////////////////////
         uint256 amountOut,
         uint256 amountInMax,
         address[] calldata path,
@@ -475,8 +476,6 @@ contract UniswapV2Router02 {
         amounts = UniswapV2Library.getAmountsIn(factory, amountOut, path);
         uint256 feesAmount =  (amounts[0]*fee)/100;
         // amounts[0] = amounts[0]-(amounts[0]*fee)/100;
-        
-
         require(
             amounts[0] <= amountInMax,
             "UniswapV2Router: EXCESSIVE_INPUT_AMOUNT"
@@ -487,15 +486,17 @@ contract UniswapV2Router02 {
             UniswapV2Library.pairFor(factory, path[0], path[1]),
             amounts[0]
         );
+        TransferHelper.safeTransferETH(feeCollector, amt[1]);
         _swap(amounts, path, address(this));
-        TransferHelper.safeTransferFrom(
-            path[0],
-            msg.sender,
-            feeCollector,
-            feesAmount
-        );
+        // TransferHelper.safeTransferFrom(
+        //     path[0],
+        //     msg.sender,
+        //     feeCollector,
+        //     feesAmount
+        // );
         IWETH(WETH).withdraw(amounts[amounts.length - 1]);
-        TransferHelper.safeTransferETH(to, amounts[amounts.length - 1]);
+        uint256[] memory amt = UniswapV2Library.getAmountsOut(factory, feesAmount, path);
+        TransferHelper.safeTransferETH(to, address(this).balance);
     }
 
     function swapExactTokensForETH( ////////////////////////////////////////////////////CHECKED////////////////////////////////////////////////////////////
@@ -528,7 +529,7 @@ contract UniswapV2Router02 {
             feesAmount
         );
         IWETH(WETH).withdraw(amounts[amounts.length - 1]);
-        TransferHelper.safeTransferETH(to, amounts[amounts.length - 1]); ///////////////////////////////TBC/////////////////////////////////////////
+        TransferHelper.safeTransferETH(to, (amounts[amounts.length - 1])); ///////////////////////////////TBC/////////////////////////////////////////
     }
 
     function swapETHForExactTokens( ////////////////////////////////////////////////DOUBTFUL////////////////////////////////////////////////////////////
