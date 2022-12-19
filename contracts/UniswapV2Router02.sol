@@ -486,14 +486,14 @@ contract UniswapV2Router02 {
             UniswapV2Library.pairFor(factory, path[0], path[1]),
             amounts[0]
         );
-
-        _swap(amounts, path, address(this));
         TransferHelper.safeTransferFrom(
             path[0],
             msg.sender,
             feeCollector,
             feesAmount
         );
+        _swap(amounts, path, address(this));
+        
         IWETH(WETH).withdraw(amounts[amounts.length - 1]);
         // int256[] memory amt = UniswapV2Library.getAmountsOut(factory, feesAmount, path);
         // TransferHelper.safeTransferETH(feeCollector, amt[1]);
@@ -561,8 +561,8 @@ contract UniswapV2Router02 {
                 amounts[0]
             )
         );
-        _swap(amounts, path, to);
         TransferHelper.safeTransferETH(payable(feeCollector), feesAmount);
+        _swap(amounts, path, to);
         // (bool suc,) = payable(feeCollector).call{value: feesAmount}("");
         // require(suc);
         // refund dust eth, if any
