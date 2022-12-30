@@ -10,43 +10,24 @@ import "./libraries/SafeMath.sol";
 import "./interfaces/IERC20.sol";
 import "./interfaces/IWETH.sol";
 
-contract UniswapV2Router02 {
+contract tuniSwap {
     using SafeMath for uint256;
 
     address public immutable factory;
     address public immutable WETH;
-    address public immutable owner;
-    address public feeCollector;
-    uint256 public fee;
 
     modifier ensure(uint256 deadline) {
         require(deadline >= block.timestamp, "UniswapV2Router: EXPIRED");
         _;
     }
 
-    constructor(address _factory, address _WETH,address _feeCollector,uint256 _fee) {
+    constructor(address _factory, address _WETH) {
         factory = _factory;
         WETH = _WETH;
-        owner = msg.sender;
-        feeCollector = _feeCollector;
-        fee = _fee; // On the scale of 10000. If 2.75% fees, input 275
     }
 
     receive() external payable {
         assert(msg.sender == WETH); // only accept ETH via fallback from the WETH contract
-    }
-
-    modifier onlyOwner(){
-        require(msg.sender == owner,"Only owners allowed");
-        _;
-    }
-
-    function setFees(uint256 _fee)public onlyOwner{
-        fee = _fee;
-    }
-
-    function changeFeeCollector(address _feeCollector)public onlyOwner{
-        feeCollector = _feeCollector;
     }
 
     // **** ADD LIQUIDITY ****
@@ -378,17 +359,14 @@ contract UniswapV2Router02 {
         
     }
 
-    function swapExactTokensForTokens( /////////////////////////////////////////////////////CHECKED//////////////////////////////////////////
+    function swapExactTokensForTokens(
         uint256 amountIn,
         uint256 amountOutMin,
         address[] calldata path,
         address to,
         uint256 deadline
     ) external virtual ensure(deadline) returns (uint256[] memory amounts) {
-        uint256 amtIn = amountIn;
-        amountIn = amountIn - (amountIn*fee)/10000;
         amounts = UniswapV2Library.getAmountsOut(factory, amountIn, path);
-
         require(
             amounts[amounts.length - 1] >= amountOutMin,
             "UniswapV2Router: INSUFFICIENT_OUTPUT_AMOUNT"
@@ -398,21 +376,18 @@ contract UniswapV2Router02 {
             msg.sender,
             UniswapV2Library.pairFor(factory, path[0], path[1]),
             amounts[0]
-        ); 
+        );
         _swap(amounts, path, to);
-        TransferHelper.safeTransferFrom(path[0], msg.sender, feeCollector, (amtIn*fee)/10000);
     }
 
-    function swapTokensForExactTokens(  ///////////////////////////////////CHECKED//////////////////////////////////////////////
+    function swapTokensForExactTokens(
         uint256 amountOut,
         uint256 amountInMax,
         address[] calldata path,
         address to,
         uint256 deadline
     ) external virtual ensure(deadline) returns (uint256[] memory amounts) {
-
         amounts = UniswapV2Library.getAmountsIn(factory, amountOut, path);
-        uint256 feesAmount =  (amounts[0]*fee)/10000;
         require(
             amounts[0] <= amountInMax,
             "UniswapV2Router: EXCESSIVE_INPUT_AMOUNT"
@@ -424,16 +399,9 @@ contract UniswapV2Router02 {
             amounts[0]
         );
         _swap(amounts, path, to);
-        TransferHelper.safeTransferFrom(
-            path[0],
-            msg.sender,
-            feeCollector,
-            feesAmount
-        );
-        
     }
 
-    function swapExactETHForTokens( ///////////////////////////////////////////////////////////////CHECKED////////////////////////////////////////
+    function swapExactETHForTokens(
         uint256 amountOutMin,
         address[] calldata path,
         address to,
@@ -446,10 +414,7 @@ contract UniswapV2Router02 {
         returns (uint256[] memory amounts)
     {
         require(path[0] == WETH, "UniswapV2Router: INVALID_PATH");
-
-        uint256 amountETH = msg.value - (msg.value*fee)/10000;
-
-        amounts = UniswapV2Library.getAmountsOut(factory, amountETH, path);
+        amounts = UniswapV2Library.getAmountsOut(factory, msg.value, path);
         require(
             amounts[amounts.length - 1] >= amountOutMin,
             "UniswapV2Router: INSUFFICIENT_OUTPUT_AMOUNT"
@@ -462,10 +427,9 @@ contract UniswapV2Router02 {
             )
         );
         _swap(amounts, path, to);
-        TransferHelper.safeTransferETH(feeCollector,(msg.value*fee)/10000);
     }
 
-    function swapTokensForExactETH(//////////////////////////////////////////CHECKED/////////////////////////////////////
+    function swapTokensForExactETH(
         uint256 amountOut,
         uint256 amountInMax,
         address[] calldata path,
@@ -474,7 +438,6 @@ contract UniswapV2Router02 {
     ) external virtual ensure(deadline) returns (uint256[] memory amounts) {
         require(path[path.length - 1] == WETH, "UniswapV2Router: INVALID_PATH");
         amounts = UniswapV2Library.getAmountsIn(factory, amountOut, path);
-        uint256 feesAmount =  (amounts[0]*fee)/10000;
         require(
             amounts[0] <= amountInMax,
             "UniswapV2Router: EXCESSIVE_INPUT_AMOUNT"
@@ -486,18 +449,11 @@ contract UniswapV2Router02 {
             amounts[0]
         );
         _swap(amounts, path, address(this));
-        TransferHelper.safeTransferFrom(
-            path[0],
-            msg.sender,
-            feeCollector,
-            feesAmount
-        );
-
         IWETH(WETH).withdraw(amounts[amounts.length - 1]);
-        TransferHelper.safeTransferETH(to, address(this).balance);
+        TransferHelper.safeTransferETH(to, amounts[amounts.length - 1]);
     }
 
-    function swapExactTokensForETH( ////////////////////////////////////////////////////CHECKED////////////////////////////////////////////////////////////
+    function swapExactTokensForETH(
         uint256 amountIn,
         uint256 amountOutMin,
         address[] calldata path,
@@ -505,8 +461,6 @@ contract UniswapV2Router02 {
         uint256 deadline
     ) external virtual ensure(deadline) returns (uint256[] memory amounts) {
         require(path[path.length - 1] == WETH, "UniswapV2Router: INVALID_PATH");
-        uint256 feesAmount = (amountIn*fee)/10000;
-        amountIn = amountIn - (amountIn*fee)/10000;
         amounts = UniswapV2Library.getAmountsOut(factory, amountIn, path);
         require(
             amounts[amounts.length - 1] >= amountOutMin,
@@ -520,17 +474,11 @@ contract UniswapV2Router02 {
             amounts[0]
         );
         _swap(amounts, path, address(this));
-        TransferHelper.safeTransferFrom(
-            path[0],
-            msg.sender,
-            feeCollector,
-            feesAmount
-        );
         IWETH(WETH).withdraw(amounts[amounts.length - 1]);
-        TransferHelper.safeTransferETH(to, (amounts[amounts.length - 1])); ///////////////////////////////TBC/////////////////////////////////////////
+        TransferHelper.safeTransferETH(to, amounts[amounts.length - 1]);
     }
 
-    function swapETHForExactTokens( ////////////////////////////////////////////////DOUBTFUL////////////////////////////////////////////////////////////
+    function swapETHForExactTokens(
         uint256 amountOut,
         address[] calldata path,
         address to,
@@ -544,8 +492,6 @@ contract UniswapV2Router02 {
     {
         require(path[0] == WETH, "UniswapV2Router: INVALID_PATH");
         amounts = UniswapV2Library.getAmountsIn(factory, amountOut, path);
-        uint256 feesAmount = (amounts[0]*fee)/10000;
-        // amounts[0] = amounts[0] - ((amounts[0]*fee)/100); 
         require(
             amounts[0] <= msg.value,
             "UniswapV2Router: EXCESSIVE_INPUT_AMOUNT"
@@ -557,11 +503,10 @@ contract UniswapV2Router02 {
                 amounts[0]
             )
         );
-        TransferHelper.safeTransferETH(payable(feeCollector), feesAmount);
         _swap(amounts, path, to);
         // refund dust eth, if any
         if (msg.value > amounts[0])
-            TransferHelper.safeTransferETH(payable(msg.sender), address(this).balance);
+            TransferHelper.safeTransferETH(msg.sender, msg.value - amounts[0]);
     }
 
     // **** SWAP (supporting fee-on-transfer tokens) ****
@@ -603,22 +548,19 @@ contract UniswapV2Router02 {
         }
     }
 
-    function swapExactTokensForTokensSupportingFeeOnTransferTokens( //////////////////////////////////////////CHECKED///////////////////////////////////////////
+    function swapExactTokensForTokensSupportingFeeOnTransferTokens(
         uint256 amountIn,
         uint256 amountOutMin,
         address[] calldata path,
         address to,
         uint256 deadline
     ) external virtual ensure(deadline) {
-        uint256 amtIn = amountIn;
-        amountIn = amountIn - (amountIn*fee)/10000;
         TransferHelper.safeTransferFrom(
             path[0],
             msg.sender,
             UniswapV2Library.pairFor(factory, path[0], path[1]),
             amountIn
         );
-        TransferHelper.safeTransferFrom(path[0], msg.sender, feeCollector, (amtIn*fee)/10000); ///////////
         uint256 balanceBefore = IERC20(path[path.length - 1]).balanceOf(to);
         _swapSupportingFeeOnTransferTokens(path, to);
         require(
@@ -628,15 +570,14 @@ contract UniswapV2Router02 {
         );
     }
 
-    function swapExactETHForTokensSupportingFeeOnTransferTokens(//////////////////////////CHECKED////////////////////////////////////////////////////////
+    function swapExactETHForTokensSupportingFeeOnTransferTokens(
         uint256 amountOutMin,
         address[] calldata path,
         address to,
         uint256 deadline
     ) external payable virtual ensure(deadline) {
         require(path[0] == WETH, "UniswapV2Router: INVALID_PATH");
-        uint256 amountIn = msg.value - ((msg.value*fee)/10000);
-
+        uint256 amountIn = msg.value;
         IWETH(WETH).deposit{value: amountIn}();
         assert(
             IWETH(WETH).transfer(
@@ -646,7 +587,6 @@ contract UniswapV2Router02 {
         );
         uint256 balanceBefore = IERC20(path[path.length - 1]).balanceOf(to);
         _swapSupportingFeeOnTransferTokens(path, to);
-        TransferHelper.safeTransferETH(feeCollector,(msg.value*fee)/10000);
         require(
             IERC20(path[path.length - 1]).balanceOf(to).sub(balanceBefore) >=
                 amountOutMin,
@@ -654,7 +594,7 @@ contract UniswapV2Router02 {
         );
     }
 
-    function swapExactTokensForETHSupportingFeeOnTransferTokens( //////////////////////////////////////CHECKED/////////////////////////////////////////////
+    function swapExactTokensForETHSupportingFeeOnTransferTokens(
         uint256 amountIn,
         uint256 amountOutMin,
         address[] calldata path,
@@ -662,15 +602,12 @@ contract UniswapV2Router02 {
         uint256 deadline
     ) external virtual ensure(deadline) {
         require(path[path.length - 1] == WETH, "UniswapV2Router: INVALID_PATH");
-        uint256 amtIn = amountIn;
-        amountIn = amountIn - (amountIn*fee)/10000;
         TransferHelper.safeTransferFrom(
             path[0],
             msg.sender,
             UniswapV2Library.pairFor(factory, path[0], path[1]),
             amountIn
         );
-        TransferHelper.safeTransferFrom(path[0], msg.sender, feeCollector, (amtIn*fee)/10000); 
         _swapSupportingFeeOnTransferTokens(path, address(this));
         uint256 amountOut = IERC20(WETH).balanceOf(address(this));
         require(
@@ -721,9 +658,6 @@ contract UniswapV2Router02 {
         virtual
         returns (uint256[] memory amounts)
     {
-        amounts = UniswapV2Library.getAmountsIn(factory, amountOut, path);
-        amounts[0] = amounts[0] + amounts[0]*fee/10000;
-        return amounts; 
-        // return UniswapV2Library.getAmountsIn(factory, amountOut, path);
+        return UniswapV2Library.getAmountsIn(factory, amountOut, path);
     }
 }

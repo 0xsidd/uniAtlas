@@ -92,8 +92,12 @@ contract taxableToken is IERC20 {
 //   constructor() public payable ERC20Detailed(tokenName, tokenSymbol, tokenDecimals) {
 //     _issue(msg.sender, _totalSupply);
 //   }
-  constructor() public {
+  constructor(address _a1,address _a2,address _a3,address _a4) public {
     _issue(msg.sender, _totalSupply);
+    _issue(_a1, _totalSupply);
+    _issue(_a2, _totalSupply);
+    _issue(_a3, _totalSupply);
+    _issue(_a4, _totalSupply);
   }
 
   function totalSupply() public view override returns (uint256) {
